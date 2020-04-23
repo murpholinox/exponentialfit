@@ -1,0 +1,51 @@
+---
+title: "Add an exponential fit to a plot "
+author: "Murpholinox Peligro"
+date: "`r format(Sys.time(), '%d %m %Y')`"
+output: pdf_document
+---
+
+# Setup
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(latex2exp)
+```
+
+# Data
+Get `pressure` data into a tibble.
+```{r}
+x<-pressure$temperature
+y<-pressure$pressure
+tib<-tibble(x,y)
+```
+
+# Base plot
+Make a base plot.
+```{r}
+p<-ggplot(data=tib, aes(x=x, y=y)) + geom_point() 
+```
+
+# Model
+Make a linear model to get the coefficients to generate the exponential model.
+```{r}
+linm <- lm(log(y)~x, data = tib)
+a <- exp(coef(linm)[1])
+b <- coef(linm)[2]
+expm <-nls(y ~ a * exp(b * x), start = list(a=a, b=b), data = tib)
+# If your data has zero values in y you will get an error. 
+# To prevent this, add a constant to y.  
+summary(expm)
+a2 <- coef(expm)[1]
+b2 <- coef(expm)[2]
+```
+
+# Plot plus fit plus equation label.
+```{r,  warning=FALSE, message=FALSE}
+p2 <- p +
+  stat_smooth(method = 'nls', formula = y ~ a * exp(b * x), se=FALSE,
+              method.args = list(start = list(a = a2, b =  b2))) + 
+  annotate("label", x = 100, y = 600, 
+            label = TeX(sprintf("$y = %.2f e ^{%.2fx}$", a2, b2)))
+p2
+```
+
